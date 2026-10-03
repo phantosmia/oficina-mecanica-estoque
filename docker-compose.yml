@@ -1,0 +1,96 @@
+# Ambiente local do Estoque: PostgreSQL + LocalStack (SQS/SNS) + migrations +
+# API + worker + relay da outbox. O docker-compose com os 5 microsserviços
+# juntos fica no repositório oficina-mecanica-fiap (OS Service).
+x-estoque-env: &estoque-env
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: estoque
+  POSTGRES_PASSWORD: estoque
+  POSTGRES_DB: oficina_estoque
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://localstack:4566
+  ESTOQUE_EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:estoque-eventos
+  ESTOQUE_COMMANDS_QUEUE_URL: http://localstack:4566/000000000000/estoque-comandos
+  ESTOQUE_CATALOG_EVENTS_QUEUE_URL: http://localstack:4566/000000000000/estoque-catalogo-eventos
+  JWT_SECRET_KEY: change-me-in-production
+  ADMIN_USERNAME: admin
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: estoque-db
+    environment:
+      POSTGRES_USER: estoque
+      POSTGRES_PASSWORD: estoque
+      POSTGRES_DB: oficina_estoque
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estoque -d oficina_estoque"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  localstack:
+    image: localstack/localstack:4
+    container_name: estoque-localstack
+    environment:
+      SERVICES: sns,sqs
+    ports:
+      - "4567:4566"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    container_name: estoque-migrate
+    command: ["migrate"]
+    environment:
+      <<: *estoque-env
+      SEED_ON_MIGRATE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    container_name: estoque-api
+    environment:
+      <<: *estoque-env
+      BOOTSTRAP_LOCAL_RESOURCES: "true"
+    ports:
+      - "8002:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    build: .
+    container_name: estoque-worker
+    command: ["worker"]
+    environment:
+      <<: *estoque-env
+    depends_on:
+      api:
+        condition: service_healthy
+
+  outbox-relay:
+    build: .
+    container_name: estoque-outbox-relay
+    command: ["relay"]
+    environment:
+      <<: *estoque-env
+    depends_on:
+      api:
+        condition: service_healthy

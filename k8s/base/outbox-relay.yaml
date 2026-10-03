@@ -1,0 +1,50 @@
+# Relay da outbox: publica no SNS as respostas que o worker gravou (README,
+# "Uma transação por mensagem"). Uma réplica só, sem HPA: várias réplicas só
+# gerariam publicações duplicadas.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estoque-outbox-relay
+  namespace: oficina-estoque
+  labels:
+    app.kubernetes.io/name: estoque-outbox-relay
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: estoque-outbox-relay
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: estoque-outbox-relay
+        app.kubernetes.io/part-of: oficina-mecanica
+    spec:
+      containers:
+        - name: relay
+          image: oficina-mecanica-estoque:latest
+          imagePullPolicy: Always
+          args: ["relay"]
+          envFrom:
+            - configMapRef:
+                name: estoque-config
+            - secretRef:
+                name: estoque-secret
+          env:
+            - name: NEW_RELIC_APP_NAME
+              value: oficina-mecanica-estoque-outbox-relay
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
