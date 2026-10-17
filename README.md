@@ -1,5 +1,7 @@
 # oficina-mecanica-estoque
 
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=phantosmia_oficina-mecanica-estoque&metric=alert_status)](https://sonarcloud.io/summary/overall?id=phantosmia_oficina-mecanica-estoque) [![Cobertura](https://sonarcloud.io/api/project_badges/measure?project=phantosmia_oficina-mecanica-estoque&metric=coverage)](https://sonarcloud.io/component_measures?id=phantosmia_oficina-mecanica-estoque&metric=coverage)
+
 Microsserviço de **Estoque** do sistema da oficina mecânica (Tech Challenge FIAP, Fase 4): mantém o **saldo de cada peça** e as **reservas das ordens de serviço**. É participante da saga da OS: reserva as peças definidas no diagnóstico, faz a baixa depois do pagamento e desfaz uma ou outra quando a saga é compensada.
 
 É um dos 5 microsserviços do sistema. A divisão, a saga e o contrato entre os serviços estão documentados no repositório principal, [oficina-mecanica-fiap](https://github.com/phantosmia/oficina-mecanica-fiap):
