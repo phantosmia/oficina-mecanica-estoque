@@ -232,3 +232,9 @@ __marimo__/
 
 # Estoque
 coverage.xml
+
+# Terraform
+infra/.terraform/
+infra/tfplan
+*.tfstate
+*.tfstate.*
