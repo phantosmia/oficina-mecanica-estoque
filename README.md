@@ -135,6 +135,8 @@ poetry run pytest
 
 `scripts/seed.py` cria o saldo das mesmas 5 peças dos dados de exemplo do Catálogo, **com os mesmos IDs** (UUID v5 do SKU, no mesmo namespace), sem precisar consultar o Catálogo. Roda no `migrate` quando `SEED_ON_MIGRATE=true`.
 
+Num ambiente novo, rode o seed do Estoque **antes** do seed do Catálogo. O `PecaCadastrada` que o Catálogo publica cria o saldo da peça zerado, e o seed do Estoque não altera peça que já tem saldo.
+
 ## Configuração
 
 | Variável | Padrão | Descrição |
